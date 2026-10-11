@@ -917,3 +917,38 @@ a.award-link:hover .award-go {
     font-size: 0.85em;
     color: #7b8190;
 }
+
+/* Mobile menu: keep every item reachable on short screens (e.g. Safari with its bottom toolbar showing).
+   The overlay scrolls, is centered only when it fits, and leaves room at the bottom for the browser bar. */
+@media screen and (max-width: 1240px) {
+    .header-nav {
+        height: 100vh;
+        height: 100dvh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        display: flex;
+        box-sizing: border-box;
+        padding: 80px 0 calc(110px + env(safe-area-inset-bottom));
+    }
+
+    .header-nav nav {
+        top: auto;
+        transform: none;
+        margin: auto;
+        width: 100%;
+    }
+
+    nav ul li {
+        margin-bottom: 18px;
+    }
+}
+
+@media screen and (max-width: 1240px) and (max-height: 700px) {
+    nav ul li a {
+        font-size: 20px;
+    }
+
+    nav ul li {
+        margin-bottom: 12px;
+    }
+}
