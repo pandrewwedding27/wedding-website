@@ -1,0 +1,26 @@
+const navToggle = document.querySelector('.nav-toggle');
+const nav = document.querySelector('.site-nav');
+const year = document.getElementById('year');
+
+if (navToggle && nav) {
+  navToggle.addEventListener('click', () => {
+    nav.classList.toggle('open');
+  });
+}
+
+if (year) {
+  year.textContent = new Date().getFullYear();
+}
+
+const form = document.querySelector('.rsvp-form');
+if (form) {
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button');
+    if (button) {
+      button.textContent = 'Thank you!';
+      button.disabled = true;
+    }
+  });
+}
+"},{
