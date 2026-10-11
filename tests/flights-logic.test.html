@@ -1,0 +1,33 @@
+<!doctype html><meta charset="utf-8"><title>flights logic tests</title>
+<script src="mini.js"></script>
+<script src="../js/flights-logic.js"></script>
+<body><script>
+var NOW = Date.parse('2026-10-20T12:00:00Z');
+function ago(days, extraHours) { return new Date(NOW - days * 86400000 - (extraHours || 0) * 3600000).toISOString(); }
+
+test('data from today is fresh', function () {
+  var f = FlightsLogic.freshness(ago(0, 2), NOW);
+  eq(f.ageDays, 0); eq(f.ago, 'today'); eq(f.warn, false); eq(f.expired, false);
+});
+test('yesterday and N days ago wording', function () {
+  eq(FlightsLogic.freshness(ago(1, 1), NOW).ago, 'yesterday');
+  eq(FlightsLogic.freshness(ago(4, 1), NOW).ago, '4 days ago');
+});
+test('a warning starts at 3 days, not before', function () {
+  eq(FlightsLogic.freshness(ago(2, 23), NOW).warn, false);
+  eq(FlightsLogic.freshness(ago(3), NOW).warn, true);
+});
+test('data is still shown at 6 days and hidden from 7 days on', function () {
+  eq(FlightsLogic.freshness(ago(6, 23), NOW).expired, false);
+  eq(FlightsLogic.freshness(ago(7), NOW).expired, true);
+  eq(FlightsLogic.freshness(ago(30), NOW).expired, true);
+});
+test('a bad or missing timestamp counts as expired', function () {
+  eq(FlightsLogic.freshness('not a date', NOW).expired, true);
+  eq(FlightsLogic.freshness(undefined, NOW).expired, true);
+});
+test('a timestamp slightly in the future (clock skew) counts as fresh', function () {
+  var f = FlightsLogic.freshness(new Date(NOW + 3600000).toISOString(), NOW);
+  eq(f.ageDays, 0); eq(f.expired, false);
+});
+</script>

@@ -1,0 +1,189 @@
+<!doctype html><meta charset="utf-8"><title>Apps Script tests</title>
+<script src="mini.js"></script>
+<script>
+// In-memory stand-ins for the Google services used by Code.gs.
+function makeSheet() {
+  var rows = [];
+  return {
+    getLastRow: function () { return rows.length; },
+    getRange: function (r, c, nr, nc) {
+      nr = nr || 1; nc = nc || 1;
+      return {
+        getValues: function () { var o = []; for (var i = 0; i < nr; i++) { o.push((rows[r - 1 + i] || []).slice(c - 1, c - 1 + nc)); } return o; },
+        getValue: function () { return (rows[r - 1] || [])[c - 1]; },
+        setValues: function (v) { for (var i = 0; i < v.length; i++) { rows[r - 1 + i] = rows[r - 1 + i] || []; for (var j = 0; j < v[i].length; j++) { rows[r - 1 + i][c - 1 + j] = v[i][j]; } } }
+      };
+    },
+    appendRow: function (v) { rows.push(v.slice()); }, deleteRow: function (r) { rows.splice(r - 1, 1); },
+    setFrozenRows: function () {}, _rows: rows
+  };
+}
+var sheets = {}, mails = [], PASSWORD = 'pw';
+var SpreadsheetApp = {getActive: function () { return {
+  getSheetByName: function (n) { return sheets[n] || null; }, insertSheet: function (n) { sheets[n] = makeSheet(); return sheets[n]; },
+  getSheets: function () { return []; }, deleteSheet: function () {}, getUrl: function () { return 'https://sheet.test'; } }; }};
+var ContentService = {MimeType: {JSON: 'json'}, createTextOutput: function (t) { return {t: t, setMimeType: function () { return this; }}; }};
+var LockService = {getScriptLock: function () { return {waitLock: function () {}, releaseLock: function () {}}; }};
+var PropertiesService = {getScriptProperties: function () { return {getProperty: function () { return PASSWORD; }}; }};
+var MailApp = {sendEmail: function (to, subject, body) { mails.push({to: to, subject: subject, body: body}); }, getRemainingDailyQuota: function () {}};
+var Utilities = {getUuid: function () { return 'id-' + Math.random().toString(36).slice(2); }};
+</script>
+<script src="../tools/apps-script/Code.gs"></script>
+<body><script>
+function post(o) { return JSON.parse(doPost({parameter: {payload: JSON.stringify(o)}}).t); }
+function get(p) { return JSON.parse(doGet({parameter: p}).t); }
+function rsvp(over) {
+  return Object.assign({password: PASSWORD, mode: 'new', update_key: '', email: 'andrew@example.com', phone: '',
+    guests: [{name: 'Andrew McGrath', type: 'adult', dietary: '', attending: true, events: ['dinner', 'wedding']}],
+    accommodation: 'provided', own_stay: '', transfer: 'yes', arrival: {flight: 'SQ 938', date: '2027-08-02', time: '10:00'}, departure: {}}, over || {});
+}
+function reset() { sheets = {}; mails.length = 0; setup(); }
+function search(q) { return get({action: 'search', q: q, password: PASSWORD}).matches; }
+
+test('setup creates the RSVPs and Guests sheets', function () {
+  reset(); assert(sheets.RSVPs && sheets.Guests); eq(sheets.RSVPs._rows.length, 1);
+});
+test('a new RSVP is saved, with one Guests row per person, and an email alert is sent', function () {
+  reset();
+  var r = post(rsvp({guests: [
+    {name: 'Andrew McGrath', type: 'adult', attending: true, events: ['dinner']}, {name: 'Baby M', type: 'baby', attending: false, events: []}]}));
+  eq(r, {result: 'ok', updated: false});
+  eq(sheets.RSVPs._rows.length, 2); eq(sheets.Guests._rows.length, 3);
+  eq(mails.length, 1); eq(mails[0].to, 'pandrewwedding27@gmail.com'); assert(/New RSVP: Andrew McGrath \+1/.test(mails[0].subject));
+});
+test('the wrong site password is rejected and nothing is saved', function () {
+  reset(); var r = post(rsvp({password: 'nope'}));
+  eq(r.result, 'error'); eq(sheets.RSVPs._rows.length, 1); eq(mails.length, 0);
+});
+test('an email or phone is required', function () {
+  reset(); assert(/email or a phone/.test(post(rsvp({email: '', phone: ''})).message));
+});
+test('counts adults, children and babies who are attending', function () {
+  reset();
+  post(rsvp({guests: [{name: 'A', type: 'adult', attending: true, events: []}, {name: 'B', type: 'child', attending: true, events: []},
+                      {name: 'C', type: 'baby', attending: true, events: []}, {name: 'D', type: 'adult', attending: false, events: []}]}));
+  eq(sheets.RSVPs._rows[1].slice(4, 7), [1, 1, 1]);
+});
+test('a second new RSVP with the same email (any case) is turned away', function () {
+  reset(); post(rsvp());
+  var r = post(rsvp({email: 'ANDREW@Example.com'}));
+  eq(r.result, 'error'); assert(/Update my RSVP/.test(r.message)); eq(sheets.RSVPs._rows.length, 2);
+});
+test('phone numbers match regardless of formatting or country code', function () {
+  reset(); post(rsvp({email: '', phone: '+1 (555) 123-4567'}));
+  assert(post(rsvp({email: '', phone: '555-123-4567'})).result === 'error');
+  eq(get({action: 'lookup', key: '5551234567', password: PASSWORD}).result, 'ok');
+});
+test('lookup finds the RSVP by email and returns the saved answers (never the password)', function () {
+  reset(); post(rsvp());
+  var r = get({action: 'lookup', key: '  Andrew@example.com ', password: PASSWORD});
+  eq(r.result, 'ok'); eq(r.rsvp.guests[0].name, 'Andrew McGrath'); assert(!('password' in r.rsvp));
+});
+test('lookup needs the password and returns notfound for strangers', function () {
+  reset(); post(rsvp());
+  eq(get({action: 'lookup', key: 'andrew@example.com', password: 'bad'}).result, 'error');
+  eq(get({action: 'lookup', key: 'nobody@example.com', password: PASSWORD}).result, 'notfound');
+});
+test('an update changes the same row (even if the email changes) and rewrites the guests', function () {
+  reset(); post(rsvp());
+  var r = post(rsvp({mode: 'update', update_key: 'andrew@example.com', email: 'new@example.com',
+    guests: [{name: 'Andrew McGrath', type: 'adult', attending: true, events: []}, {name: 'Kid', type: 'child', attending: true, events: ['wedding']}]}));
+  eq(r, {result: 'ok', updated: true});
+  eq(sheets.RSVPs._rows.length, 2); eq(sheets.Guests._rows.length, 3);
+  eq(get({action: 'lookup', key: 'andrew@example.com', password: PASSWORD}).result, 'notfound');
+  eq(get({action: 'lookup', key: 'new@example.com', password: PASSWORD}).result, 'ok');
+  assert(/Updated RSVP/.test(mails[1].subject));
+});
+test('an update of an RSVP that does not exist fails', function () {
+  reset(); assert(/couldn’t find your original/.test(post(rsvp({mode: 'update', update_key: 'ghost@example.com'})).message));
+});
+test('an update cannot take over another RSVP’s email', function () {
+  reset(); post(rsvp()); post(rsvp({email: 'other@example.com', guests: [{name: 'Other', type: 'adult', attending: true, events: []}]}));
+  var r = post(rsvp({mode: 'update', update_key: 'other@example.com', email: 'andrew@example.com'}));
+  eq(r.result, 'error'); assert(/already used/.test(r.message));
+});
+test('text starting with = + - @ is stored as plain text, not a formula', function () {
+  reset(); post(rsvp({guests: [{name: '=HYPERLINK("http://x")', type: 'adult', dietary: '+cmd', attending: true, events: []}]}));
+  eq(sheets.Guests._rows[1][1], "'=HYPERLINK(\"http://x\")"); eq(sheets.Guests._rows[1][4], "'+cmd");
+});
+test('too many guests, blank names and bad emails are rejected', function () {
+  reset();
+  var many = []; for (var i = 0; i < 21; i++) { many.push({name: 'G' + i, type: 'adult', attending: true, events: []}); }
+  eq(post(rsvp({guests: many})).result, 'error');
+  eq(post(rsvp({guests: [{name: '  ', type: 'adult', attending: true, events: []}]})).result, 'error');
+  eq(post(rsvp({email: 'nope'})).result, 'error');
+});
+
+// ---- name search (the "Andrew McGrath" case)
+function withGuests() {
+  reset();
+  post(rsvp({email: 'andrew.mcgrath@gmail.com', phone: '+1 555 123 4567', guests: [
+    {name: 'Andrew McGrath', type: 'adult', attending: true, events: []}, {name: 'Paige Smith', type: 'adult', attending: true, events: []}]}));
+  post(rsvp({email: 'jordan@example.org', guests: [{name: 'Jordan Smith', type: 'adult', attending: true, events: []}]}));
+}
+test('name search: full name finds the RSVP', function () {
+  withGuests(); var m = search('Andrew McGrath'); eq(m.length, 1); eq(m[0].name, 'Andrew McGrath (+1)');
+});
+test('name search ignores letter case and extra spaces', function () {
+  withGuests(); eq(search('  andrew   MCGRATH ').length, 1); eq(search('ANDREW MCGRATH').length, 1);
+});
+test('name search: first name only, last name only, and part of a name', function () {
+  withGuests(); eq(search('andrew').length, 1); eq(search('mcgrath').length, 1); eq(search('mcgra').length, 1);
+});
+test('name search: finds someone who is a +1 on another person’s RSVP', function () {
+  withGuests(); var m = search('Paige'); eq(m.length, 1); eq(m[0].name, 'Paige Smith (+1)');
+});
+test('name search: shared surname returns each RSVP', function () {
+  withGuests(); eq(search('smith').length, 2);
+});
+test('name search: word order does not matter', function () {
+  withGuests(); eq(search('McGrath Andrew').length, 1);
+});
+test('name search: matches a middle name on file and ignores accents', function () {
+  reset(); post(rsvp({guests: [{name: 'Andrés James McGrath', type: 'adult', attending: true, events: []}]}));
+  eq(search('andres mcgrath').length, 1); eq(search('Andrés McGrath').length, 1);
+});
+test('name search: apostrophes and hyphens work', function () {
+  reset(); post(rsvp({guests: [{name: "Sean O'Brien-Lee", type: 'adult', attending: true, events: []}]}));
+  eq(search("o'brien").length, 1); eq(search('brien-lee').length, 1);
+});
+test('name search: unknown names and too-short queries return nothing', function () {
+  withGuests(); eq(search('Zed Zimmer').length, 0); eq(search('a').length, 0); eq(search('  ').length, 0);
+});
+test('name search returns an id plus masked hints, never full contact details', function () {
+  withGuests(); var m = search('Andrew')[0];
+  assert(m.id && m.id.length > 3);
+  eq(m.email, 'a***@g***.com'); eq(m.phone, '***-***-4567');
+  var raw = doGet({parameter: {action: 'search', q: 'Andrew', password: PASSWORD}}).t;
+  assert(raw.indexOf('mcgrath@gmail') === -1 && raw.indexOf('555 123') === -1 && raw.indexOf('555123') === -1);
+});
+test('the id from a name search opens the full RSVP', function () {
+  withGuests(); var m = search('Andrew McGrath')[0];
+  var r = get({action: 'lookup', id: m.id, password: PASSWORD});
+  eq(r.result, 'ok'); eq(r.rsvp.email, 'andrew.mcgrath@gmail.com'); eq(r.rsvp.guests.length, 2);
+});
+test('looking up by id needs the password and a real id', function () {
+  withGuests(); var m = search('Andrew')[0];
+  eq(get({action: 'lookup', id: m.id, password: 'bad'}).result, 'error');
+  eq(get({action: 'lookup', id: 'not-a-real-id', password: PASSWORD}).result, 'notfound');
+});
+test('saving with update_key "id:<id>" updates that RSVP', function () {
+  withGuests(); var m = search('Andrew')[0];
+  var r = post(rsvp({mode: 'update', update_key: 'id:' + m.id, email: 'andrew.mcgrath@gmail.com',
+    guests: [{name: 'Andrew McGrath', type: 'adult', attending: true, events: ['wedding']}]}));
+  eq(r, {result: 'ok', updated: true});
+  eq(sheets.RSVPs._rows.length, 3);
+  eq(get({action: 'lookup', id: m.id, password: PASSWORD}).rsvp.guests.length, 1);
+});
+test('an unknown "id:" update key fails cleanly', function () {
+  withGuests(); eq(post(rsvp({mode: 'update', update_key: 'id:nope'})).result, 'error');
+});
+test('name search needs the site password', function () {
+  withGuests(); eq(get({action: 'search', q: 'Andrew', password: 'wrong'}).result, 'error');
+});
+test('name search returns at most 5 matches', function () {
+  reset();
+  for (var i = 0; i < 8; i++) { post(rsvp({email: 'x' + i + '@example.com', guests: [{name: 'Pat Lee ' + i, type: 'adult', attending: true, events: []}]})); }
+  eq(search('pat lee').length, 5);
+});
+</script>

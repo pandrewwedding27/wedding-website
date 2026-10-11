@@ -1,0 +1,321 @@
+<!doctype html><meta charset="utf-8"><title>RSVP page tests</title>
+<script src="mini.js"></script>
+<body><script>
+var ENDPOINT = 'https://example.test/exec';
+
+// Loads the real rsvp.html in an iframe, with the site "unlocked" and the network mocked.
+async function load(opts) {
+  opts = opts || {};
+  localStorage.setItem('site-unlocked', 'a685cbfdd501f357cb8ac18faa4a35926e65fe7791d8357fe8721a4c6ddbd490');
+  localStorage.setItem('site-pw', 'testpw');
+  if (!opts.keepDraft) { sessionStorage.removeItem('rsvp-draft'); }
+  var frame = document.createElement('iframe');
+  frame.style.cssText = 'width:1000px;height:800px';
+  document.body.appendChild(frame);
+  await new Promise(function (r) { frame.onload = r; frame.src = '../rsvp.html'; });
+  await sleep(150);
+  var win = frame.contentWindow;
+  win.RSVP_ENDPOINT = ENDPOINT;
+  var calls = {post: [], getJSON: [], modal: []};
+  win.__deferred = {};
+  win.$.post = function (url, data) { var d = win.$.Deferred(); calls.post.push({url: url, data: data, d: d}); return d; };
+  win.$.getJSON = function (url, params) { var d = win.$.Deferred(); calls.getJSON.push({url: url, params: params, d: d}); return d; };
+  win.$.fn.modal = function (a) { calls.modal.push(a); return this; };
+  return {win: win, doc: win.document, calls: calls, frame: frame};
+}
+function $1(p, sel) { return p.doc.querySelector(sel); }
+function $$(p, sel) { return Array.prototype.slice.call(p.doc.querySelectorAll(sel)); }
+function type(p, el, value) {
+  el.value = value;
+  el.dispatchEvent(new p.win.Event('input', {bubbles: true}));
+  el.dispatchEvent(new p.win.Event('change', {bubbles: true}));
+}
+function choose(p, id, value) { type(p, p.doc.getElementById(id), value); }
+function click(p, el) { el.click(); }
+function fillValid(p) {
+  type(p, $1(p, '#rsvp-email'), 'alex@example.com');
+  type(p, $$(p, '.g-name')[0], 'Alex Smith');
+  choose(p, 'rsvp-accommodation', 'provided');
+  choose(p, 'rsvp-transfer', 'no');
+}
+function submit(p) { click(p, $1(p, '.rsvp-btn')); }
+function lastPayload(p) { return JSON.parse(p.calls.post[p.calls.post.length - 1].data.payload); }
+var SAVED = {
+  email: 'andrew@example.com', phone: '555-123-4567', accommodation: 'own', own_stay: 'Hotel X', transfer: 'maybe',
+  arrival: {flight: 'SQ 938', date: '2027-08-02', time: '10:00'}, departure: {flight: '', date: '', time: ''},
+  guests: [{name: 'Andrew McGrath', type: 'adult', dietary: 'vegan', attending: true, events: ['wedding']},
+           {name: 'Baby McGrath', type: 'baby', dietary: '', attending: false, events: []}]
+};
+
+// ------------------------------------------------------------------ guests
+test('starts with one guest, labelled You, with no remove button', async function () {
+  var p = await load();
+  eq($$(p, '.guest-card').length, 1);
+  eq($1(p, '.guest-head strong').textContent, 'You');
+  eq($$(p, '.guest-remove').length, 0);
+});
+test('Add another guest adds a row that can be removed', async function () {
+  var p = await load();
+  click(p, $1(p, '#add-guest'));
+  eq($$(p, '.guest-card').length, 2);
+  click(p, $1(p, '.guest-remove'));
+  eq($$(p, '.guest-card').length, 1);
+});
+test('guest type offers adult, child 2–16 and baby under 2', async function () {
+  var p = await load();
+  eq($$(p, '.g-type option').map(function (o) { return o.textContent; }), ['Adult', 'Child (2–16)', 'Baby (under 2)']);
+});
+test('default events: dinner, evening and wedding checked; optional ones not', async function () {
+  var p = await load();
+  eq($$(p, '.g-event').filter(function (b) { return b.checked; }).map(function (b) { return b.value; }), ['dinner', 'night', 'wedding']);
+});
+test('Can’t make it clears and disables that guest’s events, and undoing re-enables them', async function () {
+  var p = await load();
+  click(p, $1(p, '.g-decline'));
+  assert($$(p, '.g-event').every(function (b) { return b.disabled && !b.checked; }));
+  click(p, $1(p, '.g-decline'));
+  assert($$(p, '.g-event').every(function (b) { return !b.disabled; }));
+});
+test('event names link to the schedule pages in a new tab', async function () {
+  var p = await load();
+  var links = $$(p, '.guest-events a');
+  eq(links.map(function (a) { return a.getAttribute('href'); }),
+     ['schedule.html#day-1', 'schedule.html#day-2', 'schedule.html#day-2', 'schedule.html#day-3', 'faq.html#weekend-plans']);
+  assert(links.every(function (a) { return a.target === '_blank' && /noopener/.test(a.rel); }));
+});
+
+// ------------------------------------------------------------ conditional fields
+test('"own accommodation" reveals the where-are-you-staying box', async function () {
+  var p = await load();
+  assert($1(p, '#own-stay').hidden);
+  choose(p, 'rsvp-accommodation', 'own'); assert(!$1(p, '#own-stay').hidden);
+  choose(p, 'rsvp-accommodation', 'provided'); assert($1(p, '#own-stay').hidden);
+});
+test('airport help yes/maybe reveals flight boxes, no hides them', async function () {
+  var p = await load();
+  assert($1(p, '#flight-info').hidden);
+  choose(p, 'rsvp-transfer', 'yes'); assert(!$1(p, '#flight-info').hidden);
+  choose(p, 'rsvp-transfer', 'maybe'); assert(!$1(p, '#flight-info').hidden);
+  choose(p, 'rsvp-transfer', 'no'); assert($1(p, '#flight-info').hidden);
+});
+test('phone box formats as you type', async function () {
+  var p = await load();
+  type(p, $1(p, '#rsvp-phone'), '5551234567');
+  eq($1(p, '#rsvp-phone').value, '555-123-4567');
+});
+
+// ------------------------------------------------------------------ submit
+test('submitting an empty form shows an error and sends nothing', async function () {
+  var p = await load();
+  submit(p);
+  eq(p.calls.post.length, 0);
+  assert(/email or a phone/.test($1(p, '#alert-wrapper').textContent));
+});
+test('missing accommodation or airport answer blocks submit', async function () {
+  var p = await load();
+  type(p, $1(p, '#rsvp-email'), 'a@b.co'); type(p, $$(p, '.g-name')[0], 'A');
+  submit(p); assert(/staying/.test($1(p, '#alert-wrapper').textContent));
+  choose(p, 'rsvp-accommodation', 'own');
+  submit(p); assert(/airport transfers/.test($1(p, '#alert-wrapper').textContent));
+  eq(p.calls.post.length, 0);
+});
+test('valid submit posts the payload with the site password', async function () {
+  var p = await load();
+  fillValid(p); submit(p);
+  eq(p.calls.post.length, 1);
+  eq(p.calls.post[0].url, ENDPOINT);
+  var d = lastPayload(p);
+  eq(d.mode, 'new'); eq(d.password, 'testpw'); eq(d.email, 'alex@example.com');
+  eq(d.guests[0].name, 'Alex Smith'); eq(d.guests[0].type, 'adult'); eq(d.guests[0].events, ['dinner', 'night', 'wedding']);
+  eq(d.accommodation, 'provided'); eq(d.transfer, 'no');
+});
+test('payload includes every guest and their per-person choices', async function () {
+  var p = await load();
+  fillValid(p); click(p, $1(p, '#add-guest'));
+  var names = $$(p, '.g-name'), types = $$(p, '.g-type');
+  type(p, names[1], 'Kid Smith'); type(p, types[1], 'child'); type(p, $$(p, '.g-diet')[1], 'peanut allergy');
+  click(p, $$(p, '.g-decline')[1]);
+  submit(p);
+  var d = lastPayload(p);
+  eq(d.guests.length, 2);
+  eq(d.guests[1], {name: 'Kid Smith', type: 'child', dietary: 'peanut allergy', attending: false, events: []});
+});
+test('flight details are sent when airport help is requested', async function () {
+  var p = await load();
+  fillValid(p); choose(p, 'rsvp-transfer', 'yes');
+  type(p, $1(p, '[name=arrival_flight]'), 'SQ 938'); type(p, $1(p, '[name=arrival_date]'), '2027-08-02');
+  submit(p);
+  var d = lastPayload(p);
+  eq(d.transfer, 'yes'); eq(d.arrival.flight, 'SQ 938'); eq(d.arrival.date, '2027-08-02');
+});
+test('success opens the thank-you and clears the saved draft', async function () {
+  var p = await load();
+  fillValid(p); submit(p);
+  p.calls.post[0].d.resolve({result: 'ok'});
+  eq(p.calls.modal, ['show']);
+  eq(sessionStorage.getItem('rsvp-draft'), null);
+  eq(p.doc.querySelector('#rsvp-modal h3').textContent, 'Thank you!');
+});
+test('a server error message is shown to the guest', async function () {
+  var p = await load();
+  fillValid(p); submit(p);
+  p.calls.post[0].d.resolve({result: 'error', message: 'You’ve already RSVP’d'});
+  assert(/already RSVP/.test($1(p, '#alert-wrapper').textContent));
+  eq(p.calls.modal.length, 0);
+});
+test('a network failure shows a friendly message', async function () {
+  var p = await load();
+  fillValid(p); submit(p);
+  p.calls.post[0].d.reject();
+  assert(/try again/.test($1(p, '#alert-wrapper').textContent));
+});
+
+// ------------------------------------------------------- keeping the form filled in
+test('the form is restored after the page reloads', async function () {
+  var p = await load();
+  type(p, $1(p, '#rsvp-email'), 'keep@example.com');
+  click(p, $1(p, '#add-guest'));
+  var names = $$(p, '.g-name');
+  type(p, names[0], 'Alex'); type(p, names[1], 'Sam'); type(p, $$(p, '.g-type')[1], 'baby');
+  click(p, $$(p, '.g-decline')[1]);
+  choose(p, 'rsvp-transfer', 'maybe');
+  await sleep(50);
+  var q = await load({keepDraft: true});
+  eq($1(q, '#rsvp-email').value, 'keep@example.com');
+  eq($$(q, '.g-name').map(function (i) { return i.value; }), ['Alex', 'Sam']);
+  eq($$(q, '.g-type')[1].value, 'baby');
+  assert($$(q, '.g-decline')[1].checked);
+  assert(!$1(q, '#flight-info').hidden);
+});
+
+// ------------------------------------------------------- New / Update tabs
+test('Update tab shows the lookup and hides the form; New tab brings the form back', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  assert(!$1(p, '#rsvp-lookup').hidden); assert($1(p, '#rsvp-body').hidden);
+  click(p, $1(p, '.rsvp-tab[data-mode=new]'));
+  assert($1(p, '#rsvp-lookup').hidden); assert(!$1(p, '#rsvp-body').hidden);
+  eq($1(p, '.rsvp-btn').textContent, 'Submit RSVP');
+});
+test('lookup by email fills in the saved RSVP and switches to Update RSVP', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  type(p, $1(p, '#lookup-key'), 'andrew@example.com'); click(p, $1(p, '#lookup-btn'));
+  eq(p.calls.getJSON.length, 1);
+  eq(p.calls.getJSON[0].params, {action: 'lookup', password: 'testpw', key: 'andrew@example.com'});
+  p.calls.getJSON[0].d.resolve({result: 'ok', rsvp: SAVED});
+  assert(!$1(p, '#rsvp-body').hidden);
+  eq($$(p, '.g-name').map(function (i) { return i.value; }), ['Andrew McGrath', 'Baby McGrath']);
+  eq($1(p, '#rsvp-email').value, 'andrew@example.com');
+  eq($1(p, '#rsvp-accommodation').value, 'own'); eq($1(p, '#rsvp-own-stay').value, 'Hotel X');
+  assert(!$1(p, '#flight-info').hidden); eq($1(p, '[name=arrival_flight]').value, 'SQ 938');
+  assert($$(p, '.g-decline')[1].checked);
+  eq($1(p, '.rsvp-btn').textContent, 'Update RSVP');
+});
+test('saving an update sends mode=update with the key used to find it', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  type(p, $1(p, '#lookup-key'), 'andrew@example.com'); click(p, $1(p, '#lookup-btn'));
+  p.calls.getJSON[0].d.resolve({result: 'ok', rsvp: SAVED});
+  type(p, $1(p, '#rsvp-email'), 'andrew.new@example.com');
+  submit(p);
+  var d = lastPayload(p);
+  eq(d.mode, 'update'); eq(d.update_key, 'andrew@example.com'); eq(d.email, 'andrew.new@example.com');
+  p.calls.post[0].d.resolve({result: 'ok'});
+  eq(p.doc.querySelector('#rsvp-modal h3').textContent, 'RSVP updated!');
+});
+test('lookup that finds nothing explains what to do', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  type(p, $1(p, '#lookup-key'), '555-000-1111'); click(p, $1(p, '#lookup-btn'));
+  p.calls.getJSON[0].d.resolve({result: 'notfound'});
+  assert(/couldn’t find/.test($1(p, '#lookup-status').textContent));
+  assert($1(p, '#rsvp-body').hidden);
+});
+test('an empty lookup box asks for something to search with', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]')); click(p, $1(p, '#lookup-btn'));
+  assert(/Enter the email or phone/.test($1(p, '#lookup-status').textContent));
+  eq(p.calls.getJSON.length, 0);
+});
+
+// ------------------------------------------------------- name search
+test('typing a name runs a name search (not a lookup)', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  type(p, $1(p, '#lookup-key'), 'Andrew McGrath'); click(p, $1(p, '#lookup-btn'));
+  eq(p.calls.getJSON.length, 1);
+  eq(p.calls.getJSON[0].url, ENDPOINT);
+  eq(p.calls.getJSON[0].params, {action: 'search', q: 'Andrew McGrath', password: 'testpw'});
+});
+test('a single name match opens that RSVP straight away', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  type(p, $1(p, '#lookup-key'), 'Andrew McGrath'); click(p, $1(p, '#lookup-btn'));
+  p.calls.getJSON[0].d.resolve({result: 'ok', matches: [{id: 'abc-123', name: 'Andrew McGrath (+1)', email: 'a***@g***.com', phone: '***-***-4567'}]});
+  eq(p.calls.getJSON.length, 2);
+  eq(p.calls.getJSON[1].params, {action: 'lookup', password: 'testpw', id: 'abc-123'});
+  p.calls.getJSON[1].d.resolve({result: 'ok', rsvp: SAVED});
+  assert(!$1(p, '#rsvp-body').hidden);
+  eq($$(p, '.g-name').map(function (i) { return i.value; }), ['Andrew McGrath', 'Baby McGrath']);
+  eq($1(p, '.rsvp-btn').textContent, 'Update RSVP');
+  assert(/Found it/.test($1(p, '#lookup-status').textContent));
+});
+test('saving after a name search updates by RSVP id', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  type(p, $1(p, '#lookup-key'), 'Andrew McGrath'); click(p, $1(p, '#lookup-btn'));
+  p.calls.getJSON[0].d.resolve({result: 'ok', matches: [{id: 'abc-123', name: 'Andrew McGrath', email: '', phone: ''}]});
+  p.calls.getJSON[1].d.resolve({result: 'ok', rsvp: SAVED});
+  submit(p);
+  var d = lastPayload(p);
+  eq(d.mode, 'update'); eq(d.update_key, 'id:abc-123'); eq(d.email, 'andrew@example.com');
+});
+test('if the script version is too old to return ids, name search falls back to hints', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  type(p, $1(p, '#lookup-key'), 'Andrew McGrath'); click(p, $1(p, '#lookup-btn'));
+  p.calls.getJSON[0].d.resolve({result: 'ok', matches: [{name: 'Andrew McGrath (+1)', email: 'a***@g***.com', phone: '***-***-4567'}]});
+  eq(p.calls.getJSON.length, 1, 'must not try to open an RSVP with an undefined id');
+  assert(/full email or phone/.test($1(p, '#lookup-status').textContent));
+});
+test('several name matches are listed; picking one opens it', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  type(p, $1(p, '#lookup-key'), 'Smith'); click(p, $1(p, '#lookup-btn'));
+  p.calls.getJSON[0].d.resolve({result: 'ok', matches: [
+    {id: 'id-1', name: 'Alex Smith (+1)', email: 'a***@e***.com', phone: ''},
+    {id: 'id-2', name: 'Jordan Smith', email: '', phone: '***-***-6543'}]});
+  eq(p.calls.getJSON.length, 1, 'nothing opens until one is chosen');
+  var buttons = $$(p, '#lookup-status .match-open');
+  eq(buttons.length, 2);
+  assert(/Alex Smith \(\+1\)/.test(buttons[0].textContent) && /a\*\*\*@e\*\*\*\.com/.test(buttons[0].textContent));
+  assert($1(p, '#rsvp-body').hidden);
+  click(p, buttons[1]);
+  eq(p.calls.getJSON[1].params.id, 'id-2');
+  p.calls.getJSON[1].d.resolve({result: 'ok', rsvp: SAVED});
+  assert(!$1(p, '#rsvp-body').hidden);
+});
+test('name search with no matches says so', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  type(p, $1(p, '#lookup-key'), 'Nobody Here'); click(p, $1(p, '#lookup-btn'));
+  p.calls.getJSON[0].d.resolve({result: 'ok', matches: []});
+  assert(/couldn’t find an RSVP under that name/.test($1(p, '#lookup-status').textContent));
+});
+test('name search that fails (e.g. old script version) points to email/phone', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  type(p, $1(p, '#lookup-key'), 'Andrew McGrath'); click(p, $1(p, '#lookup-btn'));
+  p.calls.getJSON[0].d.reject();
+  assert(/Name search isn’t working/.test($1(p, '#lookup-status').textContent));
+});
+test('names in search results are escaped (no HTML injection)', async function () {
+  var p = await load();
+  click(p, $1(p, '.rsvp-tab[data-mode=update]'));
+  type(p, $1(p, '#lookup-key'), 'Mallory'); click(p, $1(p, '#lookup-btn'));
+  p.calls.getJSON[0].d.resolve({result: 'ok', matches: [{id: 'x1', name: '<img src=x onerror=alert(1)>', email: '', phone: ''}, {id: 'x2', name: 'Other', email: '', phone: ''}]});
+  eq($$(p, '#lookup-status img').length, 0);
+  assert(/<img/.test($1(p, '#lookup-status').textContent));
+});
+</script>

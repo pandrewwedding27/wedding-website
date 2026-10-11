@@ -1,0 +1,74 @@
+<!doctype html><meta charset="utf-8"><title>logic tests</title>
+<script src="mini.js"></script>
+<script src="../js/rsvp-logic.js"></script>
+<body><script>
+var L = RsvpLogic;
+var valid = function () {
+  return {mode: 'new', update_key: '', email: 'a@b.co', phone: '', accommodation: 'own', transfer: 'no',
+          guests: [{name: 'A', type: 'adult', attending: true}]};
+};
+
+test('formatPhone: builds 555-123-4567 as digits are typed', function () {
+  eq(L.formatPhone('5'), '5'); eq(L.formatPhone('555'), '555'); eq(L.formatPhone('5551'), '555-1');
+  eq(L.formatPhone('555123'), '555-123'); eq(L.formatPhone('5551234'), '555-123-4');
+  eq(L.formatPhone('5551234567'), '555-123-4567');
+});
+test('formatPhone: cleans pasted numbers', function () {
+  eq(L.formatPhone('(555) 123 4567'), '555-123-4567');
+  eq(L.formatPhone('555.123.4567'), '555-123-4567');
+});
+test('formatPhone: keeps extra digits after a space', function () {
+  eq(L.formatPhone('555123456789'), '555-123-4567 89');
+});
+test('formatPhone: international numbers stay as + and digits', function () {
+  eq(L.formatPhone('+44 7911 123456'), '+447911123456');
+  eq(L.formatPhone('+1 (555) 123-4567'), '+15551234567');
+});
+test('formatPhone: empty and junk', function () {
+  eq(L.formatPhone(''), ''); eq(L.formatPhone('abc'), '');
+});
+
+test('looksLikeContact: emails and phone numbers', function () {
+  assert(L.looksLikeContact('alex@example.com')); assert(L.looksLikeContact('555-123-4567'));
+  assert(L.looksLikeContact('+44 7911 123456')); assert(L.looksLikeContact('(555) 123 4567'));
+});
+test('looksLikeContact: names are not contacts', function () {
+  assert(!L.looksLikeContact('Andrew McGrath')); assert(!L.looksLikeContact('mcgrath'));
+  assert(!L.looksLikeContact("O'Brien")); assert(!L.looksLikeContact('Zoë Müller'));
+});
+test('looksLikeContact: short digit strings are not phone numbers', function () {
+  assert(!L.looksLikeContact('555'));
+});
+
+test('problem: valid RSVP passes', function () { eq(L.problem(valid()), null); });
+test('problem: needs email or phone', function () {
+  var d = valid(); d.email = ''; assert(/email or a phone/.test(L.problem(d)));
+  d.phone = '555-123-4567'; eq(L.problem(d), null);
+});
+test('problem: rejects a malformed email', function () {
+  var d = valid(); d.email = 'not-an-email'; assert(/email address/.test(L.problem(d)));
+});
+test('problem: every guest needs a name', function () {
+  var d = valid(); d.guests.push({name: '', type: 'adult', attending: true}); assert(/name for every guest/.test(L.problem(d)));
+});
+test('problem: needs accommodation and transfer answers', function () {
+  var d = valid(); d.accommodation = ''; assert(/staying/.test(L.problem(d)));
+  d = valid(); d.transfer = ''; assert(/airport transfers/.test(L.problem(d)));
+});
+test('problem: update mode needs the RSVP to be found first', function () {
+  var d = valid(); d.mode = 'update'; assert(/find your RSVP/.test(L.problem(d)));
+  d.update_key = 'a@b.co'; eq(L.problem(d), null);
+});
+
+test('summary: counts attending adults, children, babies', function () {
+  var d = valid();
+  d.guests = [{type: 'adult', attending: true}, {type: 'adult', attending: true}, {type: 'child', attending: true},
+              {type: 'baby', attending: true}, {type: 'adult', attending: false}];
+  eq(L.summary(d), '2 adults, 1 child, 1 baby');
+});
+test('summary: plurals and nobody attending', function () {
+  var d = valid(); d.guests = [{type: 'child', attending: true}, {type: 'child', attending: true}, {type: 'baby', attending: true}, {type: 'baby', attending: true}];
+  eq(L.summary(d), '2 children, 2 babies');
+  d.guests = [{type: 'adult', attending: false}]; eq(L.summary(d), 'no one attending');
+});
+</script>

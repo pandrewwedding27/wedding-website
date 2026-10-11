@@ -1,0 +1,97 @@
+{
+  "destinations": [
+    {
+      "code": "DPS",
+      "label": "Bali",
+      "featured": true
+    },
+    {
+      "code": "SIN",
+      "label": "Singapore",
+      "featured": true
+    },
+    {
+      "code": "HKG",
+      "label": "Hong Kong"
+    },
+    {
+      "code": "TPE",
+      "label": "Taipei"
+    },
+    {
+      "code": "BKK",
+      "label": "Bangkok"
+    },
+    {
+      "code": "MNL",
+      "label": "Manila"
+    },
+    {
+      "code": "SGN",
+      "label": "Ho Chi Minh City"
+    },
+    {
+      "code": "HAN",
+      "label": "Hanoi"
+    }
+  ],
+  "origins": [
+    {
+      "code": "SFO",
+      "label": "San Francisco",
+      "airports": [
+        "SFO"
+      ]
+    },
+    {
+      "code": "LAX",
+      "label": "Los Angeles",
+      "airports": [
+        "LAX"
+      ]
+    },
+    {
+      "code": "NYC",
+      "label": "New York",
+      "airports": [
+        "JFK",
+        "EWR"
+      ]
+    },
+    {
+      "code": "CHI",
+      "label": "Chicago",
+      "airports": [
+        "ORD"
+      ]
+    },
+    {
+      "code": "BOS",
+      "label": "Boston",
+      "airports": [
+        "BOS"
+      ]
+    },
+    {
+      "code": "ATL",
+      "label": "Atlanta",
+      "airports": [
+        "ATL"
+      ]
+    }
+  ],
+  "outbound": {
+    "start": "2027-07-29",
+    "end": "2027-08-01"
+  },
+  "return": {
+    "start": "2027-08-07",
+    "end": "2027-08-10"
+  },
+  "cabins": [
+    "economy",
+    "business"
+  ],
+  "results_per_cabin": 1,
+  "hide_beyond_60_days": false
+}

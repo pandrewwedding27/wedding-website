@@ -1,72 +1,211 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FAQ | Andrew & Paige</title>
-    <meta name="description" content="Frequently asked questions for Andrew and Paige's Bali wedding weekend." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <header class="site-header">
-      <div class="container nav-wrap">
-        <a class="brand" href="index.html">A & P</a>
-        <button class="nav-toggle" aria-label="Toggle navigation">☰</button>
-        <nav class="site-nav">
-          <a href="index.html">Home</a>
-          <a href="our-story.html">Our Story</a>
-          <a href="schedule.html">Schedule</a>
-          <a href="explore-bali.html">Explore Bali</a>
-          <a href="travel.html">Travel</a>
-          <a href="gifts.html">Gifts</a>
-          <a href="faq.html" class="active">FAQ</a>
-          <a href="rsvp.html" class="nav-button">RSVP</a>
-        </nav>
-      </div>
-    </header>
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta charset="utf-8">
+    <script src="js/gate.js"></script>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <title>RSVP | Andrew &amp; Paige</title>
+    <meta name="description" content="Join Andrew and Paige for a celebration of love in Bali, Indonesia on August 3-6, 2027.">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f7f3ee">
+    <meta property="og:title" content="Andrew & Paige Getting Married">
+    <meta property="og:description" content="Join us for our wedding celebration in Bali, August 3-6, 2027.">
+    <meta property="og:type" content="website">
 
-    <main>
-      <section class="page-hero small-hero">
-        <div class="container">
-          <p class="section-label">FAQ</p>
-          <h1>Helpful answers</h1>
+    <link rel="stylesheet" href="css/normalize.min.css">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/styles.min.css">
+    <link rel="stylesheet" href="css/queries.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.2/animate.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/custom.css">
+    <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
+</head>
+<body id="top">
+<section class="hero page-hero bg-rsvp">
+    <section class="navigation">
+        <header>
+            <div class="header-content">
+                <div class="logo"><a href="index.html">A &amp; P</a></div>
+                <div class="header-nav">
+                    <nav>
+                        <ul class="primary-nav">
+                            <li><a href="our-story.html">Our Story</a></li>
+                            <li><a href="schedule.html">Schedule</a></li>
+                            <li><a href="accommodations.html">Venue &amp; Stay</a></li>
+                            <li><a href="travel.html">Travel</a></li>
+                            <li><a href="transportation.html">Transportation</a></li>
+                            <li><a href="explore-bali.html">Explore Bali</a></li>
+                            <li><a href="faq.html">FAQ</a></li>
+                            <li><a href="communication.html">Communication</a></li>
+                        </ul>
+                        <ul class="member-actions">
+                            <li><a href="gifts.html" class="login">Gifts</a></li>
+                            <li><a href="rsvp.html" class="btn-white btn-small">RSVP</a></li>
+                        </ul>
+                    </nav>
+                </div>
+                <div class="navicon">
+                    <a class="nav-toggle" href="#"><span></span></a>
+                </div>
+            </div>
+        </header>
+    </section>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-10 col-md-offset-1">
+                <div class="hero-content text-center">
+                    <h1 class="hero-title">RSVP</h1>
+                </div>
+            </div>
         </div>
-      </section>
+    </div>
+</section>
 
-      <section class="section-spacing">
-        <div class="container faq-list">
-          <details open>
-            <summary>What should I wear?</summary>
-            <p>Dress in a comfortable tropical or elegant evening style. Light fabrics and warm-weather attire are ideal.</p>
-          </details>
-          <details>
-            <summary>Do I need a visa?</summary>
-            <p>Depending on your nationality, you may need a visa or e-visa to enter Indonesia. Please check the latest requirements before travel.</p>
-          </details>
-          <details>
-            <summary>Will there be transportation from the airport?</summary>
-            <p>We’ll provide travel guidance and encourage pre-arranged airport transfers for a smoother arrival.</p>
-          </details>
-          <details>
-            <summary>Is Bali weather hot?</summary>
-            <p>Expect warm tropical weather, especially during the day. Bring light clothing, sunscreen, and a coverup for evenings.</p>
-          </details>
+<section class="rsvp text-center" id="rsvp">
+
+    <div id="rsvp-modal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span>
+                    </button>
+                    <div class="section-padding">
+                        <h3>Thank you!</h3>
+                        <p>We can't wait to celebrate with you.</p>
+                        <div id="add-to-cal"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </section>
-    </main>
+    </div>
 
-    <footer class="site-footer">
-      <div class="container footer-wrap">
-        <p>Andrew & Paige</p>
-        <p>August 3–6, 2027 • Bali, Indonesia</p>
-        <p>© <span id="year"></span></p>
-      </div>
-    </footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2 rsvp-wrap">
+                <h3>We'd love to celebrate with you</h3>
+                <p>Please RSVP by July 1st, 2027. One response per group &ndash; add everyone in your party below.</p>
+                <div class="rsvp-tabs" role="tablist">
+                    <button type="button" class="rsvp-tab active" data-mode="new" role="tab">New RSVP</button>
+                    <button type="button" class="rsvp-tab" data-mode="update" role="tab">Update my RSVP</button>
+                </div>
+                <form id="rsvp-form" class="rsvp-form rsvp-left" novalidate>
+                    <div id="rsvp-lookup" hidden>
+                        <h5 class="rsvp-step">Find your RSVP</h5>
+                        <p class="rsvp-hint">Enter the email or phone number you used when you first RSVP'd. Can't remember which?
+                            Type your name instead. Change anything below and submit &ndash; we won't hold you to
+                            earlier answers.</p>
+                        <div class="row">
+                            <div class="col-sm-8">
+                                <div class="form-input-group">
+                                    <i class="fa fa-search"></i><input id="lookup-key" placeholder="Email, phone, or your name">
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <button type="button" id="lookup-btn" class="btn-fill lookup-btn">Find my RSVP</button>
+                            </div>
+                        </div>
+                        <div id="lookup-status"></div>
+                    </div>
+                    <div id="rsvp-body">
 
-    <script src="script.js"></script>
-  </body>
+                    <h5 class="rsvp-step">1. How can we reach you?</h5>
+                    <p class="rsvp-hint">Email or phone &ndash; one is enough, both is great.</p>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-input-group">
+                                <i class="fa fa-envelope"></i><input type="email" name="email" id="rsvp-email" placeholder="Email">
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-input-group">
+                                <i class="fa fa-phone"></i><input type="tel" name="phone" id="rsvp-phone" placeholder="Phone / WhatsApp" inputmode="tel" autocomplete="tel" maxlength="24">
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="rsvp-step">2. Who's coming?</h5>
+                    <p class="rsvp-hint">Add everyone in your group, including yourself. Tell us which events each person will join.
+                        <strong>Not sure yet?</strong> That's fine &ndash; give us your best guess. You can update your RSVP any
+                        time by submitting again with the same email or phone, and we won't hold you to these choices.</p>
+                    <div id="guest-list"></div>
+                    <button type="button" id="add-guest" class="btn-add-guest"><i class="fa fa-plus"></i> Add another guest</button>
+
+                    <h5 class="rsvp-step">3. Where will you stay?</h5>
+                    <div class="form-input-group">
+                        <i class="fa fa-home"></i>
+                        <select name="accommodation" id="rsvp-accommodation" required>
+                            <option value="">Select one</option>
+                            <option value="provided">Stay at The Surga or Bebas Villas (provided)</option>
+                            <option value="own">I'll arrange my own accommodation</option>
+                        </select>
+                    </div>
+                    <div class="form-input-group" id="own-stay" hidden>
+                        <i class="fa fa-map-marker"></i><input name="own_stay" id="rsvp-own-stay" placeholder="Where are you staying? (optional)">
+                    </div>
+
+                    <h5 class="rsvp-step">4. Getting to and from the airport</h5>
+                    <p class="rsvp-hint">We're arranging group transfers and will do our best to match you up. No pressure if
+                        you've got it covered &ndash; Grab and Gojek are the most-used ride apps in Bali.
+                        Not sure of your plans yet? Pick "Maybe" and update your RSVP later with your flight details &ndash; we won't
+                        hold you to this.</p>
+                    <div class="form-input-group">
+                        <i class="fa fa-taxi"></i>
+                        <select name="transfer" id="rsvp-transfer" required>
+                            <option value="">Would you like help with airport transfers?</option>
+                            <option value="yes">Yes please</option>
+                            <option value="maybe">Maybe &ndash; send me the options</option>
+                            <option value="no">No thanks, I've got it covered</option>
+                        </select>
+                    </div>
+                    <div id="flight-info" hidden>
+                        <p class="rsvp-hint">Share your flights so we can match you with a transfer (optional &ndash; you can send them later too).</p>
+                        <div class="row">
+                            <div class="col-sm-4"><label class="rsvp-label">Arrival flight</label>
+                                <div class="form-input-group plain"><input name="arrival_flight" placeholder="e.g. SQ 938"></div></div>
+                            <div class="col-sm-4"><label class="rsvp-label">Arrival date</label>
+                                <div class="form-input-group plain"><input type="date" name="arrival_date"></div></div>
+                            <div class="col-sm-4"><label class="rsvp-label">Arrival time</label>
+                                <div class="form-input-group plain"><input type="time" name="arrival_time"></div></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4"><label class="rsvp-label">Departure flight</label>
+                                <div class="form-input-group plain"><input name="departure_flight" placeholder="e.g. SQ 939"></div></div>
+                            <div class="col-sm-4"><label class="rsvp-label">Departure date</label>
+                                <div class="form-input-group plain"><input type="date" name="departure_date"></div></div>
+                            <div class="col-sm-4"><label class="rsvp-label">Departure time</label>
+                                <div class="form-input-group plain"><input type="time" name="departure_time"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12" id="alert-wrapper"></div>
+                    </div>
+                    <div class="text-center"><button class="btn-fill rsvp-btn">Submit RSVP</button></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12 text-center content">
+                <p>Andrew &amp; Paige &middot; August 3 &ndash; 6, 2027 &middot; Bali, Indonesia</p>
+                <p class="photo-credit"><a href="credits.html">Photo credits</a></p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="js/vendor/jquery-1.11.2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/4.0.1/jquery.waypoints.min.js"></script>
+<script src="js/vendor/bootstrap.min.js"></script>
+<script src="js/vendor/ouical.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/rsvp-logic.js"></script>
+<script src="js/rsvp.js"></script>
+</body>
 </html>
-"},{
