@@ -31,3 +31,10 @@ the secret whenever the password changes). Note seats.aero's terms limit public 
 `tests/run.sh` runs the unit tests in headless Chrome: RSVP helper logic (`js/rsvp-logic.js`), the real RSVP page
 with the network mocked, and the Google Apps Script (`tools/apps-script/Code.gs`) against in-memory stand-ins for
 Sheets and Mail. Needs Chrome/Chromium and Python 3; no installs.
+
+## Phone screenshots
+`tests/phone_screenshots.py` emulates iPhone SE, iPhone 14, Pixel 7 and iPad mini in Chrome, screenshots every page,
+flags horizontal overflow, and checks that every mobile-menu item is tappable with a fake browser bottom bar over
+the screen. Setup: `python3 -m venv .venv-phone && .venv-phone/bin/pip install playwright`, then
+`.venv-phone/bin/python tests/phone_screenshots.py` (images go to `tests/phone-shots/`). It is not Safari's engine,
+so still confirm important fixes on a real iPhone.

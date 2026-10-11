@@ -147,3 +147,7 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# phone screenshots and virtualenv
+tests/phone-shots/
+.venv-phone/
