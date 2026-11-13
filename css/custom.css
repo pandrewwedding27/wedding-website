@@ -213,15 +213,15 @@
 
 /* Photo banners */
 .hero { --hero-overlay: linear-gradient(rgba(50,75,60,.55), rgba(50,75,60,.55)); }
-.hero:not(.page-hero) { background: var(--hero-overlay), url('../img/bali/melasti.jpg') center center / cover; }
+.hero:not(.page-hero) { background: var(--hero-overlay), url('../img/bali/hero.jpg') center center / cover; }
 .page-hero.bg-schedule { background: var(--hero-overlay), url('../img/bali/uluwatu-temple.jpg') center center / cover; }
 .page-hero.bg-accommodations { background: var(--hero-overlay), url('../img/surga/estate.jpg') center center / cover; }
-.page-hero.bg-travel { background: var(--hero-overlay), url('../img/bali/melasti.jpg') center center / cover; }
+.page-hero.bg-travel { background: var(--hero-overlay), url('../img/bali/hero.jpg') center center / cover; }
 .page-hero.bg-transportation { background: var(--hero-overlay), url('../img/bali/rice-terraces.jpg') center center / cover; }
 .page-hero.bg-gifts { background: var(--hero-overlay), url('../img/bali/kuta-sunset.jpg') center center / cover; }
 .page-hero.bg-faq { background: var(--hero-overlay), url('../img/bali/uluwatu-temple.jpg') center center / cover; }
 .page-hero.bg-rsvp { background: var(--hero-overlay), url('../img/surga/ceremony.jpg') center center / cover; }
-.page-hero.bg-credits { background: var(--hero-overlay), url('../img/bali/melasti.jpg') center center / cover; }
+.page-hero.bg-credits { background: var(--hero-overlay), url('../img/bali/hero.jpg') center center / cover; }
 
 
 .hub-list {
