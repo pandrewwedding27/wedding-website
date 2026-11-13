@@ -17,7 +17,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
-PAGES = ['index', 'our-story', 'schedule', 'accommodations', 'travel', 'transportation', 'explore-bali',
+PAGES = ['index', 'schedule', 'accommodations', 'travel', 'transportation',
          'faq', 'communication', 'rsvp', 'gifts']
 # name -> (width, height, pixel ratio)
 DEVICES = {
